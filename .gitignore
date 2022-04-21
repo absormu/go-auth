@@ -1,0 +1,9 @@
+backend
+backend.exe
+out.log
+nohup.out
+vendor
+go.mod
+go.sum
+.idea/
+dbdata
