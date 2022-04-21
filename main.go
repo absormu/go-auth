@@ -1,19 +1,19 @@
 package main
 
 import (
-	"net/http"
+	"os"
 
+	handler "github.com/absormu/go-auth/app/handler"
+	md "github.com/absormu/go-auth/app/middleware"
+	cm "github.com/absormu/go-auth/pkg/configuration"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	log "github.com/sirupsen/logrus"
 )
 
 func initHandlers(e *echo.Echo) {
-	// root := e.Group(cm.Config.RootURL)
-	// root.POST("/login", handler.LoginHandler)
-	// root.POST("/signup", handler.SignupHandler)
-	// root.POST("/forgot-passsword", handler.ForgotPasswordHandler)
-	// root.GET("/verification-passsword/:id", handler.VerificationPasswordHandler)
-	// root.POST("/reset-passsword", handler.ResetPasswordHandler)
+	root := e.Group(cm.Config.RootURL)
+	root.POST("/login", handler.LoginHandler)
 
 	// Start serverlog.Info()
 	log.Info("Staring server ...")
@@ -27,8 +27,23 @@ func initLogger() {
 
 func main() {
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
-	e.Logger.Fatal(e.Start(":9000"))
+	initLogger()
+
+	cm.LoadConfig()
+
+	e.Use(md.AddLogger)
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+	}))
+
+	initHandlers(e)
+
+	var err error
+	err = e.Start(cm.Config.ListenPort)
+
+	if err != nil {
+		log.WithField("error", err).Error("Unable to start the server")
+		os.Exit(1)
+	}
 }

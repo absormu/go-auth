@@ -3,6 +3,7 @@ Belajar Authentication & Authorization with Go MariaDB
 
 # Framework Libraries
     echo
+    go get -u github.com/go-sql-driver/mysql
 
 
 # Docker 
@@ -30,8 +31,28 @@ Belajar Authentication & Authorization with Go MariaDB
     docker container stop dbauth
     docker rm dbauth
 
+### Table User
+    create table user(
+        id BIGINT(20) NOT NULL AUTO_INCREMENT,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(150) NOT NULL,
+        password VARCHAR(150) NOT NULL,
+        user_contact_id BIGINT(20) NOT NULL,
+        role_id INT(11) NOT NULL,
+        active tinyint(1) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_by VARCHAR(100) NOT NULL,
+        modified_at TIMESTAMP NULL, 
+        modified_by VARCHAR(100),
+        is_deleted tinyint(1) DEFAULT 0 NOT NULL,
+        PRIMARY KEY ( id )
+    );
+
+    INSERT INTO `user` (name,email,password,user_contact_id,role_id,active,created_at,created_by,modified_at,modified_by,is_deleted) VALUES
+	 ('SmartDelivery','superadmin@smartdelivery.id','U21AcnREZWwhdmVyeQ==',1,1,1,'2022-02-21 15:37:52.0','SYSTEM',NULL,NULL,0);
+
 # CI continuous integration
 ## Docker File
 ## GitHub Actions
 ## token github
-    git push https://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@github.com/absormu/go-auth.git
+    git push https://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@github.com/absormu/go-auth.git
