@@ -164,3 +164,48 @@ func SignupNotification(c echo.Context, req entity.Email) (e error) {
 
 	return
 }
+
+func GetAuthEmail(c echo.Context, params map[string]string) (user entity.User, e error) {
+	logger := md.GetLogger(c)
+	logger.WithFields(logrus.Fields{
+		"params": params,
+	}).Info("repository: Auth-GetEmail")
+
+	db := db.MariaDBInit()
+
+	defer db.Close()
+
+	query := "SELECT id, name, email, user_contact_id, role_id, password FROM user"
+	var condition string
+	// Combine where clause
+	clause := false
+	for key, value := range params {
+
+		if clause == false {
+			condition += " WHERE "
+		} else {
+			condition += " AND "
+		}
+		condition += "user" + "." + key + " = '" + value + "'"
+		clause = true
+	}
+
+	query += condition
+
+	logger.WithFields(logrus.Fields{"query": query}).Info("repository: Auth-GetEmail-Query")
+
+	result, err := db.Query(query)
+	if err != nil {
+		return
+	}
+
+	defer result.Close()
+
+	for result.Next() {
+		if e = result.Scan(&user.ID, &user.Name, &user.Email, &user.UserContactID, &user.RoleID, &user.Password); e != nil {
+			return
+		}
+	}
+
+	return
+}

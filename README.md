@@ -4,6 +4,7 @@ Belajar Authentication & Authorization with Go MariaDB
 # Framework Libraries
     echo
     go get -u github.com/go-sql-driver/mysql
+    go get golang.org/x/crypto/bcrypt
 
 
 # Docker 
@@ -72,4 +73,4 @@ Belajar Authentication & Authorization with Go MariaDB
 ## Docker File
 ## GitHub Actions
 ## token github
-    git push https://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@github.com/absormu/go-auth.git
+    git push https://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@github.com/absormu/go-auth.git

@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"time"
@@ -14,10 +13,11 @@ import (
 	cm "github.com/absormu/go-auth/pkg/configuration"
 	lg "github.com/absormu/go-auth/pkg/response"
 	resp "github.com/absormu/go-auth/pkg/response"
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"github.com/rs/xid"
 	sdk "gitlab.com/d3386/library"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Login(c echo.Context, req entity.Auth) (e error) {
@@ -32,24 +32,27 @@ func Login(c echo.Context, req entity.Auth) (e error) {
 		return
 	}
 
+	// cek email & get password
 	params := make(map[string]string)
 	params["email"] = req.Email
-	var password = base64.StdEncoding.EncodeToString([]byte(req.Password))
-	params["password"] = password
 	params["active"] = "1"
 	params["is_deleted"] = "0"
 
 	var user entity.User
 
-	if user, e = repoauth.GetAuth(c, params); e != nil {
-		logger.WithField("error", e.Error()).Error("Catch error failure query GetAuth")
+	if user, e = repoauth.GetAuthEmail(c, params); e != nil {
+		logger.WithField("error", e.Error()).Error("Catch error failure query GetAuthEmail")
 		e = resp.CustomError(c, http.StatusInternalServerError, sdk.ERR_DATABASE,
 			lg.Language{Bahasa: nil, English: "Failure query"}, nil, nil)
 		return
 	}
 
-	var empty entity.User
-	if user == empty {
+	// login bycrypt
+	passDB := user.Password
+	password := req.Password
+	match := CheckPasswordHash(password, passDB)
+
+	if !match {
 		logger.Error("Catch error user not found")
 		e = resp.CustomError(c, http.StatusUnauthorized, sdk.ERR_USER_NOT_FOUND,
 			lg.Language{Bahasa: "Email atau kata sandi salah", English: "Email or password is not correct"}, nil, nil)
@@ -97,6 +100,13 @@ func Signup(c echo.Context, req entity.SellerData) (e error) {
 		return
 	}
 
+	// bcrypt hashing/ save hasil hashing password
+	hashPassword, err := HashPassword(req.Password)
+	if err != nil {
+		println(fmt.Println("Error hashing password"))
+		return
+	}
+
 	var user entity.User
 	// params
 	params := make(map[string]string)
@@ -137,8 +147,7 @@ func Signup(c echo.Context, req entity.SellerData) (e error) {
 	paramsUser := make(map[string]interface{})
 	paramsUser["name"] = req.Name
 	paramsUser["email"] = req.Email
-	var password = base64.StdEncoding.EncodeToString([]byte(req.Password))
-	paramsUser["password"] = password
+	paramsUser["password"] = hashPassword
 	// role id admin = 2
 	paramsUser["role_id"] = 2
 	paramsUser["active"] = 1
@@ -159,4 +168,14 @@ func Signup(c echo.Context, req entity.SellerData) (e error) {
 	e = resp.CustomError(c, http.StatusOK, sdk.ERR_SUCCESS,
 		lg.Language{Bahasa: "Sukses", English: "Success"}, nil, nil)
 	return
+}
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
