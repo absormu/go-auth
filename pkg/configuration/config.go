@@ -25,6 +25,7 @@ type Configuration struct {
 	RedisDBAddr     string `default:"54.179.180.182" split_words:"true"`
 	RedisPort       string `default:"6379" split_words:"true"`
 	RedisDBPassword string `default:"" split_words:"true"`
+	ServiceEmail    string `default:"http://54.179.180.182:9671/notif-email/send" split_words:"true"`
 }
 
 // Config .

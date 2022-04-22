@@ -29,3 +29,20 @@ func LoginHandler(c echo.Context) (e error) {
 
 	return
 }
+
+func SignupHandler(c echo.Context) (e error) {
+	logger := md.GetLogger(c)
+	logger.Info("handler: SignupHandler")
+
+	req := entity.SellerData{}
+	if e = c.Bind(&req); e != nil {
+		logger.WithField("error", e.Error()).Error("Catch error bind request")
+		e = resp.CustomError(c, http.StatusBadRequest, sdk.ERR_PARAM_ILLEGAL,
+			lg.Language{Bahasa: nil, English: e.Error()}, nil, nil)
+		return
+	}
+
+	e = usecaseauth.Signup(c, req)
+
+	return
+}

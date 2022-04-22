@@ -2,9 +2,12 @@ package auth
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/absormu/go-auth/app/constants"
+	"github.com/absormu/go-auth/app/dto"
 	"github.com/absormu/go-auth/app/entity"
 	md "github.com/absormu/go-auth/app/middleware"
 	repoauth "github.com/absormu/go-auth/app/repository/auth"
@@ -80,5 +83,80 @@ func Login(c echo.Context, req entity.Auth) (e error) {
 
 	e = resp.CustomError(c, http.StatusOK, sdk.ERR_SUCCESS,
 		lg.Language{Bahasa: "Sukses", English: "Success"}, nil, res)
+	return
+}
+
+func Signup(c echo.Context, req entity.SellerData) (e error) {
+	logger := md.GetLogger(c)
+	logger.WithField("request", req).Info("usecase: Signup")
+
+	if req.Name == "" || req.Email == "" || req.Password == "" {
+		logger.Error("Missing mandatory parameter")
+		e = resp.CustomError(c, http.StatusBadRequest, sdk.ERR_PARAM_MISSING,
+			lg.Language{Bahasa: nil, English: "Missing mandatory parameter"}, nil, nil)
+		return
+	}
+
+	var user entity.User
+	// params
+	params := make(map[string]string)
+	params["email"] = req.Email
+
+	if user, e = repoauth.GetAuth(c, params); e != nil {
+		logger.WithField("error", e.Error()).Error("Catch error failure query GetAuth")
+		e = resp.CustomError(c, http.StatusInternalServerError, sdk.ERR_DATABASE,
+			lg.Language{Bahasa: nil, English: "Failure query"}, nil, nil)
+		return
+	}
+
+	var empty entity.User
+	if user != empty {
+		logger.Error("Catch error user already exist")
+		e = resp.CustomError(c, http.StatusForbidden, sdk.ERR_USER_EXIST,
+			lg.Language{Bahasa: "Email sudah ada", English: "Email already exist"}, nil, nil)
+		return
+	}
+
+	// params
+	paramsSeller := make(map[string]interface{})
+	// params seller
+	paramsSeller["name"] = req.Name
+	paramsSeller["city_id"] = req.City.ID
+	if req.Telephone != nil {
+		paramsSeller["telephone"] = req.Telephone
+	}
+	if req.Address != nil {
+		paramsSeller["address"] = req.Address
+	}
+	// type 2 seller
+	paramsSeller["type"] = 2
+	paramsSeller["active"] = 1
+	paramsSeller["created_by"] = "SYSTEM"
+
+	// params user
+	paramsUser := make(map[string]interface{})
+	paramsUser["name"] = req.Name
+	paramsUser["email"] = req.Email
+	var password = base64.StdEncoding.EncodeToString([]byte(req.Password))
+	paramsUser["password"] = password
+	// role id admin = 2
+	paramsUser["role_id"] = 2
+	paramsUser["active"] = 1
+	paramsUser["created_by"] = "SYSTEM"
+
+	if e = repoauth.Signup(c, paramsSeller, paramsUser); e != nil {
+		logger.WithField("error", e.Error()).Error("Catch error failure query Signup")
+		e = resp.CustomError(c, http.StatusInternalServerError, sdk.ERR_DATABASE,
+			lg.Language{Bahasa: nil, English: "Failure query signup"}, nil, nil)
+		return
+	}
+
+	to := fmt.Sprintf("%v", params["email"])
+
+	reqEmail := dto.SetEmail(to, constants.MSG3, constants.MSG4)
+	go repoauth.SignupNotification(c, reqEmail)
+
+	e = resp.CustomError(c, http.StatusOK, sdk.ERR_SUCCESS,
+		lg.Language{Bahasa: "Sukses", English: "Success"}, nil, nil)
 	return
 }

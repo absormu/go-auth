@@ -14,6 +14,7 @@ import (
 func initHandlers(e *echo.Echo) {
 	root := e.Group(cm.Config.RootURL)
 	root.POST("/login", handler.LoginHandler)
+	root.POST("/signup", handler.SignupHandler)
 
 	// Start serverlog.Info()
 	log.Info("Staring server ...")
